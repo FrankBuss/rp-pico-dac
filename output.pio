@@ -1,0 +1,29 @@
+.program output
+
+.wrap_target
+    pull
+    out pins, 8
+.wrap
+
+% c-sdk {
+#include "hardware/clocks.h"
+
+static inline void output_program_init(PIO pio, uint sm, uint offset, uint pin_base, uint pin_count, float freq) {
+    for(uint i=pin_base; i<pin_base+pin_count; i++) {
+        pio_gpio_init(pio, i);
+    }
+    pio_sm_set_consecutive_pindirs(pio, sm, pin_base, pin_count, true);
+
+    pio_sm_config c = output_program_get_default_config(offset);
+    sm_config_set_out_pins(&c, pin_base, pin_count);
+    sm_config_set_set_pins(&c, pin_base, pin_count);
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
+
+    int cycles_per_byte = 2;
+    float div = clock_get_hz(clk_sys) / (freq * cycles_per_byte);
+    sm_config_set_clkdiv(&c, div);
+
+    pio_sm_init(pio, sm, offset, &c);
+    pio_sm_set_enabled(pio, sm, true);
+}
+%}
